@@ -29,8 +29,8 @@ Dependencies: Installed via npm install.
 Setup Instructions
 
 Clone the Repository:
-git clone <your-repo-url>
-cd quote-app-frontend
+git clone https://github.com/Otuja/quote_frontend.git
+cd quote-frontend
 
 
 Install Dependencies:
