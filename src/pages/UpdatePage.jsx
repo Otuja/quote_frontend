@@ -1,132 +1,145 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useParams, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const UpdatePage = () => {
   const [text, setText] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { quoteId } = useParams();
   const navigate = useNavigate();
-  const apiUrl = import.meta.env.VITE_API_URL;
-  const token = localStorage.getItem("authToken");
-  const headers = token ? { Authorization: `Token ${token}` } : {};
+  const maxLength = 500;
 
   useEffect(() => {
-    if (!token) {
-      toast.error("You must be logged in to edit a quote.", {
-        position: "top-right",
-        autoClose: 2000,
-        theme: "dark",
-      });
-      navigate("/login");
-      return;
-    }
+    const apiUrl = import.meta.env.VITE_API_URL;
+    const token = localStorage.getItem("authToken");
 
     axios
-      .get(`${apiUrl}/api/quotes/${quoteId}/`, { headers })
+      .get(`${apiUrl}/api/quotes/${quoteId}/`, {
+        headers: {
+          Authorization: `Token ${token}`,
+        },
+      })
       .then((response) => {
-        console.log("Quote data:", response.data); // Debug: Log quote data
         setText(response.data.text);
+        setLoading(false);
       })
       .catch((error) => {
-        console.error(
-          "Error fetching quote:",
-          error.response?.data,
-          error.response?.status
-        );
-        toast.error(
-          error.response?.status === 404
-            ? "Quote not found."
-            : error.response?.status === 403
-            ? "You can only edit your own quotes."
-            : "Error fetching quote.",
-          {
-            position: "top-right",
-            autoClose: 2000,
-            theme: "dark",
-          }
-        );
-        navigate("/");
+        console.error(error);
+        toast.error("Failed to load quote");
+        setLoading(false);
       });
-  }, [quoteId, navigate, token]);
+  }, [quoteId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!token) {
-      toast.error("You must be logged in to edit a quote.", {
-        position: "top-right",
-        autoClose: 2000,
-        theme: "dark",
-      });
-      navigate("/login");
-      return;
-    }
+    setIsSubmitting(true);
 
     try {
+      const apiUrl = import.meta.env.VITE_API_URL;
+      const token = localStorage.getItem("authToken");
+
       await axios.put(
         `${apiUrl}/api/quotes/${quoteId}/update/`,
         { text },
-        { headers }
+        {
+          headers: {
+            Authorization: `Token ${token}`,
+          },
+        }
       );
-      toast.success("Quote updated successfully!", {
-        position: "top-right",
-        autoClose: 2000,
-        theme: "dark",
-      });
-      navigate("/");
+
+      toast.success("Quote updated successfully!");
+      setTimeout(() => navigate("/"), 1500);
     } catch (error) {
-      console.error(
-        "Error updating quote:",
-        error.response?.data,
-        error.response?.status
-      );
-      let errorMessage = "Error updating quote.";
-      if (error.response?.status === 403) {
-        errorMessage = "You can only edit your own quotes.";
-      } else if (error.response?.status === 401) {
-        errorMessage = "Invalid or expired token. Please log in again.";
-      } else if (error.response?.status === 400 && error.response?.data) {
-        errorMessage = Object.values(error.response.data).flat().join(" ");
-      }
-      toast.error(errorMessage, {
-        position: "top-right",
-        autoClose: 2000,
-        theme: "dark",
-      });
+      toast.error("Failed to update quote. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  if (loading) {
+    return (
+      <section className="min-h-screen section">
+        <div className="container max-w-2xl mx-auto">
+          <div className="card">
+            <div className="skeleton h-32 mb-4"></div>
+            <div className="skeleton h-10 w-32"></div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
-    <section className="min-h-screen bg-black text-white p-4">
-      <h1 className="text-xl font-bold mb-4">Edit Quote</h1>
-      <form
-        onSubmit={handleSubmit}
-        className="p-4 rounded-lg shadow-md shadow-orange-500"
-      >
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Quote text"
-          className="w-full p-2 mb-2  text-white rounded"
-          rows="4"
-          maxLength="500"
-          required
-        />
-        <button
-          type="submit"
-          className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition"
-        >
-          Update
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate("/")}
-          className="px-4 py-2 ml-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition"
-        >
-          Cancel
-        </button>
-      </form>
+    <section className="min-h-screen section">
+      <div className="container max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="mb-6 fade-in">
+          <h1 className="text-4xl md:text-5xl font-bold text-[#14B8A6] mb-2">
+            Edit Quote
+          </h1>
+          <p className="text-[#94A3B8]">
+            Update your quote to make it even better
+          </p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="card fade-in-delay-1">
+          <div className="form-group">
+            <label className="form-label">Your Quote</label>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Enter your quote here..."
+              className="textarea"
+              rows="6"
+              maxLength={maxLength}
+              required
+            />
+            <div className="flex justify-between items-center mt-2">
+              <span className="text-sm text-[#64748B]">
+                Make it inspiring ✨
+              </span>
+              <span
+                className={`text-sm font-medium ${
+                  text.length > maxLength * 0.9
+                    ? "text-[#F59E0B]"
+                    : "text-[#94A3B8]"
+                }`}
+              >
+                {text.length}/{maxLength}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="submit"
+              disabled={isSubmitting || !text.trim()}
+              className="btn btn-primary flex-1"
+            >
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <span className="loading-spinner"></span>
+                  Updating...
+                </span>
+              ) : (
+                "Update Quote"
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="btn btn-secondary"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
       <ToastContainer />
     </section>
   );

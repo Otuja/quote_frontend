@@ -1,25 +1,29 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { FaCopy, FaShareFromSquare, FaHeart } from "react-icons/fa6";
+import { FaCopy, FaShare, FaHeart, FaEdit, FaTrash } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const HomePage = () => {
   const [quotes, setQuotes] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const apiUrl = import.meta.env.VITE_API_URL;
   const token = localStorage.getItem("authToken");
   const headers = token ? { Authorization: `Token ${token}` } : {};
-  // const { quoteId } = useParams();
 
   useEffect(() => {
     axios
       .get(`${apiUrl}/api/quotes/`, { headers })
       .then((response) => {
         setQuotes(response.data);
+        setLoading(false);
       })
-      .catch(console.error);
+      .catch((error) => {
+        console.error(error);
+        setLoading(false);
+      });
   }, []);
 
   const handleCopy = (text) => {
@@ -30,9 +34,6 @@ const HomePage = () => {
           position: "top-center",
           autoClose: 2000,
           hideProgressBar: true,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: true,
           theme: "dark",
         });
       })
@@ -54,9 +55,6 @@ const HomePage = () => {
           position: "top-center",
           autoClose: 2000,
           hideProgressBar: true,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: true,
           theme: "dark",
         });
       })
@@ -70,7 +68,7 @@ const HomePage = () => {
   };
 
   const handleLike = (quoteId) => {
-    if (!localStorage.getItem("token")) {
+    if (!token) {
       toast.error("You must be logged in to like a quote.", {
         position: "top-center",
         autoClose: 2000,
@@ -78,13 +76,18 @@ const HomePage = () => {
       });
       return;
     }
+
+    // Find the current quote to check if it's already liked
+    const currentQuote = quotes.find((q) => q.id === quoteId);
+    const isCurrentlyLiked = currentQuote?.is_liked;
+
     axios
       .post(
         `${apiUrl}/api/quotes/${quoteId}/like/`,
         {},
         {
           headers: {
-            Authorization: `Token ${localStorage.getItem("authToken")}`,
+            Authorization: `Token ${token}`,
           },
         }
       )
@@ -92,9 +95,26 @@ const HomePage = () => {
         setQuotes((prevQuotes) =>
           prevQuotes.map((q) => (q.id === quoteId ? response.data : q))
         );
+        
+        // Show appropriate message based on the action
+        if (isCurrentlyLiked) {
+          toast.info("Quote unliked", {
+            position: "top-center",
+            autoClose: 1500,
+            hideProgressBar: true,
+            theme: "dark",
+          });
+        } else {
+          toast.success("Quote liked! ❤️", {
+            position: "top-center",
+            autoClose: 1500,
+            hideProgressBar: true,
+            theme: "dark",
+          });
+        }
       })
       .catch(() => {
-        toast.error("Error liking quote", {
+        toast.error("Error updating like", {
           position: "top-center",
           autoClose: 2000,
           theme: "dark",
@@ -115,7 +135,7 @@ const HomePage = () => {
           });
         })
         .catch(() => {
-          toast.error("You must be logged in to delete a quote.", {
+          toast.error("Failed to delete quote.", {
             position: "top-center",
             autoClose: 2000,
             theme: "dark",
@@ -125,64 +145,112 @@ const HomePage = () => {
   };
 
   return (
-    <section className="min-h-screen bg-black text-white p-4">
-      <h1 className="text-xl font-bold mb-4">Quote Feed</h1>
-      {quotes.map((quote) => (
-        <div
-          key={quote.id}
-          className="p-4 mb-4 rounded-lg shadow-md shadow-orange-500 relative"
-        >
-          <p className="text-sm">{quote.text}</p>
-          <p className="text-xs text-gray-500">By {quote.user}</p>
-          <div className="mt-2 flex space-x-2">
-            <button
-              onClick={() => handleCopy(quote.text)}
-              className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
-              title="Copy Quote"
-            >
-              <FaCopy />
-            </button>
-            <button
-              onClick={() => handleShare(quote.id)}
-              className="px-3 py-1 bg-green-500 text-white rounded hover:bg-blue-600 transition"
-              title="Share Quote"
-            >
-              <FaShareFromSquare />
-            </button>
-            <button
-              onClick={() => handleLike(quote.id)}
-              className="flex items-center space-x-1 px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition"
-              title={quote.is_liked ? "Unlike" : "Like"}
-            >
-              <FaHeart
-                className={`transition-colors duration-300 ${
-                  quote.is_liked ? "text-red-500" : "text-white"
-                }`}
-              />
-              <span>{quote.likes_count}</span>
-            </button>
-            {quote.is_owner && (
-              <>
-                <button
-                  onClick={() => {
-                    navigate(`/update/${quote.id}`);
-                  }}
-                  className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(quote.id)}
-                  className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition"
-                  title="Delete Quote"
-                >
-                  Delete
-                </button>
-              </>
+    <section className="min-h-screen section">
+      <div className="container">
+        {/* Header */}
+        <div className="mb-6 fade-in">
+          <h1 className="text-4xl md:text-5xl font-bold text-[#14B8A6] mb-2">
+            Quote Feed
+          </h1>
+          <p className="text-[#94A3B8] text-lg">
+            Discover and share inspiring quotes from the community
+          </p>
+        </div>
+
+        {/* Quotes List */}
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="card">
+                <div className="skeleton h-20 mb-4"></div>
+                <div className="skeleton h-4 w-32"></div>
+              </div>
+            ))}
+          </div>
+        ) : quotes.length === 0 ? (
+          <div className="card text-center py-12">
+            <p className="text-[#94A3B8] text-lg mb-4">
+              No quotes yet. Be the first to share one! 🚀
+            </p>
+            {token && (
+              <button
+                onClick={() => navigate("/form")}
+                className="btn btn-primary"
+              >
+                Post Your First Quote
+              </button>
             )}
           </div>
-        </div>
-      ))}
+        ) : (
+          <div className="space-y-6 flex flex-col gap-y-10">
+            {quotes.map((quote, index) => (
+              <div
+                key={quote.id}
+                className="card card-hover fade-in"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                {/* Quote Content */}
+                <div className="mb-4">
+                  <p className="text-lg md:text-xl text-[#F8FAFC] leading-relaxed mb-3">
+                    "{quote.text}"
+                  </p>
+                  <p className="text-sm text-[#94A3B8]">
+                    — {quote.user}
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => handleCopy(quote.text)}
+                    className="btn btn-sm btn-secondary btn-icon"
+                    title="Copy Quote"
+                  >
+                    <FaCopy />
+                  </button>
+                  <button
+                    onClick={() => handleShare(quote.id)}
+                    className="btn btn-sm btn-secondary btn-icon"
+                    title="Share Quote"
+                  >
+                    <FaShare />
+                  </button>
+                  <button
+                    onClick={() => handleLike(quote.id)}
+                    className="btn btn-sm btn-secondary flex items-center gap-2"
+                    title={quote.is_liked ? "Unlike" : "Like"}
+                  >
+                    <FaHeart
+                      className={`transition-colors ${
+                        quote.is_liked ? "text-red-500" : "text-[#94A3B8]"
+                      }`}
+                    />
+                    <span className="text-sm font-semibold">{quote.likes_count}</span>
+                  </button>
+                  {quote.is_owner && (
+                    <>
+                      <button
+                        onClick={() => navigate(`/update/${quote.id}`)}
+                        className="btn btn-sm btn-secondary btn-icon ml-auto"
+                        title="Edit Quote"
+                      >
+                        <FaEdit />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(quote.id)}
+                        className="btn btn-sm btn-secondary btn-icon hover:!bg-red-500 hover:!border-red-500"
+                        title="Delete Quote"
+                      >
+                        <FaTrash />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
       <ToastContainer />
     </section>
   );

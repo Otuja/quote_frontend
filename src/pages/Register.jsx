@@ -1,9 +1,8 @@
 import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { GoArrowLeft, GoArrowRight } from "react-icons/go";
-import { FcGoogle } from "react-icons/fc";
 import { ToastContainer, toast } from "react-toastify";
+import { Link } from "react-router-dom";
 import "react-toastify/dist/ReactToastify.css";
 
 const Register = () => {
@@ -12,19 +11,23 @@ const Register = () => {
     email: "",
     password: "",
   });
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
+
     try {
       const apiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
       const res = await axios.post(`${apiUrl}/api/account/register/`, formData);
 
-      // Save username to localStorage and navigate
       localStorage.setItem("registerUsername", formData.username);
       toast.success("Registration successful! Redirecting...");
-      navigate("/otp", { state: { username: formData.username } });
+      setTimeout(
+        () => navigate("/otp", { state: { username: formData.username } }),
+        1500
+      );
     } catch (err) {
       const errorMsg =
         err.response?.data?.username?.[0] ||
@@ -36,77 +39,95 @@ const Register = () => {
         position: "top-right",
         autoClose: 5000,
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <section className="min-h-screen flex justify-between md:items-center md:justify-center bg-black text-white">
-      <div className="flex flex-col md:flex-row md:max-w-4xl  md:rounded-3xl md:shadow-2xl md:overflow-hidden">
-        {/* Left Section */}
-        <div className="md:w-1/2  md:p-10 md:flex md:flex-col md:justify-between">
-          <div className="p-8 md:p-0 flex items-center justify-between">
-            <button
-              onClick={() => navigate("/")}
-              className="text-2xl "
-            >
-              <GoArrowLeft />
-            </button>
-            <button
-              onClick={() => navigate("/login")}
-              className="font-semiboldhover:underline"
-            >
-              Login
-            </button>
-          </div>
-          <div className="space-y-4 p-8 md:mt-10 md:p-0">
-            <h1 className="text-3xl md:text-4xl font-semibold ">
-              Sign Up
-            </h1>
-            <p className="text-sm md:text-base ">
-              Create an account to get started. It only takes a few seconds, and
-              you'll unlock all features right away.
-            </p>
-          </div>
+    <section className="min-h-screen flex items-center justify-center section">
+      <div className="w-full max-w-md fade-in">
+        {/* Header */}
+        <div className="mb-6 text-center">
+          <h1 className="text-4xl md:text-5xl font-bold text-[#14B8A6] mb-2">
+            Join iQuote
+          </h1>
+          <p className="text-[#94A3B8]">
+            Create an account to start sharing quotes
+          </p>
         </div>
 
-        {/* Right Section */}
-        <div className="flex-1  p-8 rounded-t-4xl md:rounded-t-none md:p-10 md:w-1/2">
-          <form onSubmit={handleRegister} className="space-y-6">
+        {/* Form */}
+        <form onSubmit={handleRegister} className="card fade-in-delay-1">
+          <div className="form-group">
+            <label className="form-label">Username</label>
             <input
               type="text"
-              placeholder="Username"
+              placeholder="Choose a username"
               value={formData.username}
               onChange={(e) =>
                 setFormData({ ...formData, username: e.target.value })
               }
-              className="py-4 px-5  w-full rounded-full md:rounded-lg border border-orange-500"
+              className="input"
+              required
             />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Email</label>
             <input
               type="email"
-              placeholder="Email"
+              placeholder="Enter your email"
               value={formData.email}
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
               }
-              className="py-4 px-5  w-full rounded-full md:rounded-lg border border-orange-500"
+              className="input"
+              required
             />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Password</label>
             <input
               type="password"
-              placeholder="Password"
+              placeholder="Create a password"
               value={formData.password}
               onChange={(e) =>
                 setFormData({ ...formData, password: e.target.value })
               }
-              className="py-4 px-5  w-full rounded-full md:rounded-lg border border-orange-500"
+              className="input"
+              required
             />
-            <button
-              type="submit"
-              className="py-4 px-5  w-full rounded-full md:rounded-lg border border-orange-500"
-            >
-              Sign Up
-            </button>
-          </form>
-        </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="btn btn-primary w-full mb-4"
+          >
+            {isSubmitting ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="loading-spinner"></span>
+                Creating account...
+              </span>
+            ) : (
+              "Sign Up"
+            )}
+          </button>
+
+          <div className="text-center pt-4 border-t border-[#334155]">
+            <p className="text-[#94A3B8]">
+              Already have an account?{" "}
+              <Link
+                to="/login"
+                className="text-[#14B8A6] hover:text-[#0D9488] font-semibold transition-colors"
+              >
+                Sign In
+              </Link>
+            </p>
+          </div>
+        </form>
       </div>
 
       <ToastContainer />

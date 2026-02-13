@@ -2,10 +2,14 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-black border-t border-orange-500 p-4 text-white text-center">
-      <p className="text-sm  tracking-wide">
-        &copy; {currentYear} | Crafted with 🚀 | All Rights Reserved
-      </p>
+    <footer className="bg-[#1E293B] border-t border-[#334155] mt-auto">
+      <div className="my-20">
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-sm text-[#94A3B8]">
+            &copy; {currentYear} iQuote | All Rights Reserved
+          </p>
+        </div>
+      </div>
     </footer>
   );
 };

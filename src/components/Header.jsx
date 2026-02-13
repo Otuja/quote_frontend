@@ -1,154 +1,138 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
 import { GiHamburgerMenu } from "react-icons/gi";
-import axios from "axios";
-import { toast, ToastContainer } from "react-toastify";
+import { IoClose } from "react-icons/io5";
+import { FaPlus, FaUser, FaSignOutAlt, FaSignInAlt, FaUserPlus } from "react-icons/fa";
+import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
+  const isAuthenticated = !!localStorage.getItem("authToken");
 
-  useEffect(() => {
-    const token = localStorage.getItem("authToken"); // unified token check
-    setIsAuthenticated(!!token);
-  }, []);
-
-  // Logout function (with API call)
-  const handleLogout = async (e) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem("authToken");
-      if (!token) {
-        toast.error("No active session found.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-        navigate("/login");
-        return;
-      }
-      const apiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
-      const res = await axios.post(
-        `${apiUrl}/api/account/logout/`,
-        {},
-        {
-          headers: {
-            Authorization: `Token ${token}`,
-          },
-        }
-      );
-      localStorage.removeItem("authToken");
-      toast.success(res.data.detail || "Logged out successfully!", {
-        position: "top-right",
-        autoClose: 2000,
-      });
-      setTimeout(() => navigate("/"), 2000);
-      setIsAuthenticated(false);
-    } catch (err) {
-      const message =
-        err?.response?.data?.detail || "Logout failed. Please try again.";
-      toast.error(message, { position: "top-right", autoClose: 3000 });
-    }
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    toast.success("Logged out successfully");
+    navigate("/login");
   };
 
   return (
-    <nav className="p-4 text-white bg-black border-b border-b-orange-500">
-      {/* desktop nav */}
-      <div className="hidden md:flex justify-between items-center">
-        <Link
-          to="/"
-          className="flex items-center text-2xl font-semibold cursor-pointer"
-        >
-          iQuote
-        </Link>
+    <nav className="sticky top-0 z-50 bg-[#1E293B] border-b border-[#334155] backdrop-blur-sm bg-opacity-98 shadow-lg">
+      <div className="container mx-auto px-6 py-4">
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex justify-between items-center">
+          <Link
+            to="/"
+            className="text-2xl font-bold text-[#14B8A6] hover:text-[#0D9488] transition-all duration-200 flex items-center gap-2"
+          >
+            <span className="text-3xl">💬</span>
+            iQuote
+          </Link>
+          <div className="flex gap-3 items-center">
+            {isAuthenticated ? (
+              <>
+                <Link to="/form">
+                  <button className="btn btn-ghost flex items-center gap-2">
+                    <FaPlus className="text-sm" />
+                    Post Quote
+                  </button>
+                </Link>
+                <Link to="/profile">
+                  <button className="btn btn-secondary flex items-center gap-2">
+                    <FaUser className="text-sm" />
+                    Profile
+                  </button>
+                </Link>
+                <button onClick={handleLogout} className="btn btn-primary flex items-center gap-2">
+                  <FaSignOutAlt className="text-sm" />
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login">
+                  <button className="btn btn-ghost flex items-center gap-2">
+                    <FaSignInAlt className="text-sm" />
+                    Login
+                  </button>
+                </Link>
+                <Link to="/register">
+                  <button className="btn btn-primary flex items-center gap-2">
+                    <FaUserPlus className="text-sm" />
+                    Sign Up
+                  </button>
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
 
-        <div className="flex space-x-4 items-center">
-          {isAuthenticated ? (
-            <>
-              <button className="shadow-sm py-2 px-6 rounded-2xl cursor-pointer">
-                <Link to="/form">Post</Link>
-              </button>
-              <button className="shadow-sm py-2 px-6 rounded-2xl cursor-pointer">
-                <Link to="/profile">Profile</Link>
-              </button>
-              <button
-                onClick={handleLogout}
-                className="border py-2 px-6 border-[#B6E63A] rounded-2xl cursor-pointer hover:bg-[#B6E63A] hover:text-black transition"
-              >
-                Logout
-              </button>
-            </>
-          ) : (
-            <>
-              <button className="shadow-sm py-2 px-6 rounded-2xl cursor-pointer">
-                <Link to="/login">Login</Link>
-              </button>
-              <button className="border py-2 px-6 border-[#B6E63A] rounded-2xl cursor-pointer">
-                <Link to="/register">Sign Up</Link>
-              </button>
-            </>
-          )}
+        {/* Mobile Navigation */}
+        <div className="flex justify-between items-center md:hidden">
+          <Link
+            to="/"
+            className="text-2xl font-bold text-[#14B8A6] flex items-center gap-2"
+          >
+            <span className="text-2xl">💬</span>
+            iQuote
+          </Link>
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="text-2xl p-3 hover:bg-[#334155] rounded-lg transition-all duration-200 text-[#F8FAFC]"
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? <IoClose /> : <GiHamburgerMenu />}
+          </button>
         </div>
       </div>
 
-      {/* mobile nav */}
-      <div className="flex justify-between md:hidden">
-        <Link
-          to="/"
-          className="flex items-center text-2xl font-semibold cursor-pointer"
-        >
-          iQuote
-        </Link>
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="cursor-pointer text-2xl"
-        >
-          <GiHamburgerMenu />
-        </button>
-      </div>
-
-      {/* mobile dropdown menu */}
+      {/* Mobile Dropdown Menu */}
       {mobileMenuOpen && (
-        <div className="flex flex-col font-bold mt-2">
-          {isAuthenticated ? (
-            <>
-              <Link to="/form" className="cursor-pointer py-1">
-                Post
-              </Link>
-              <Link
-                to="/profile"
-                className="text-[#B6E63A] cursor-pointer py-1"
-              >
-                Profile
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="bg-gradient-to-r from-[#8653EF] to-[#B6E63A] text-transparent bg-clip-text cursor-pointer py-1 text-left"
-              >
-                Logout
-              </button>
-            </>
-          ) : (
-            <>
-              <Link to="/login" className="text-[#B6E63A] cursor-pointer py-1">
-                Login
-              </Link>
-              <Link
-                to="/register"
-                className="bg-gradient-to-r from-[#8653EF] to-[#B6E63A] text-transparent bg-clip-text cursor-pointer py-1"
-              >
-                Sign Up
-              </Link>
-            </>
-          )}
+        <div className="md:hidden bg-[#1E293B] border-t border-[#334155] fade-in shadow-xl">
+          <div className="container mx-auto px-6 py-4 flex flex-col gap-3">
+            {isAuthenticated ? (
+              <>
+                <Link to="/form" onClick={() => setMobileMenuOpen(false)}>
+                  <button className="btn btn-ghost w-full justify-start flex items-center gap-3">
+                    <FaPlus />
+                    Post Quote
+                  </button>
+                </Link>
+                <Link to="/profile" onClick={() => setMobileMenuOpen(false)}>
+                  <button className="btn btn-secondary w-full justify-start flex items-center gap-3">
+                    <FaUser />
+                    Profile
+                  </button>
+                </Link>
+                <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="btn btn-primary w-full justify-start flex items-center gap-3">
+                  <FaSignOutAlt />
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
+                  <button className="btn btn-ghost w-full justify-start flex items-center gap-3">
+                    <FaSignInAlt />
+                    Login
+                  </button>
+                </Link>
+                <Link to="/register" onClick={() => setMobileMenuOpen(false)}>
+                  <button className="btn btn-primary w-full justify-start flex items-center gap-3">
+                    <FaUserPlus />
+                    Sign Up
+                  </button>
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       )}
-
-      {/* Toast notifications */}
       <ToastContainer />
     </nav>
   );
 };
 
 export default Header;
+
